@@ -2,7 +2,7 @@ import json
 import zmq
 import traceback
 import struct
-
+import numpy as np
 
 class Node():
     """This is the class that will be the base of every node object
@@ -117,7 +117,10 @@ class Node():
             """
             send numpy array as 1 + np type + np dimension + np shape + np data
             """
-            out = bytes([1]) + str(msg.dtype).encode() + bytes([len(msg.shape)]) + bytes(msg.shape) + msg.tobytes()
+            out = bytes([1]) + bytes([0]) + str(msg.dtype).encode() + bytes([0]) + len(msg.shape).to_bytes(4, byteorder="big")
+            for i in msg.shape:
+                out += i.to_bytes(4, byteorder="big")
+            out += msg.tobytes()
             self.topics[topic].send(out)
         elif isinstance(msg, json):
             """
@@ -160,7 +163,23 @@ class Node():
         data_type = re[0]
 
         if data_type == 1: # receive np array
-            return 0
+
+            """
+            recv numpy array as 1 + np type + np dimension + np shape + np data
+            """
+            # get type
+            t = np.dtype(re.split(bytes([0]),2)[1].decode("utf-8")) 
+            # get dimentions
+            aftertype = re.split(bytes([0]),2)[2]
+            d = int.from_bytes(aftertype[:4], byteorder="big")
+            # get shape
+            shape = []
+            for i in range(d):
+                shape.append(aftertype[i*4 + 4: i*4 + 8])
+            shape = tuple(shape)
+            array = np.array(aftertype[d*4 + 4:], dtype = t)
+            array.reshape(shape)
+            return array
         elif data_type == 2: # receive json
             return json.dumps(re[1:].decode()).replace("'", '"')[1:-1]
         elif data_type == 3: # receive integer
