@@ -1,0 +1,13 @@
+{
+    "id": "send",
+    "topics": [
+        {
+            "name": "array-out",
+            "topic": "array",
+            "paradigm": "pub",
+            "protocol": "tcp",
+            "address": "127.0.0.1",
+            "port": "5556"
+        }
+    ]
+}

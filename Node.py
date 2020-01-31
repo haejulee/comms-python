@@ -122,7 +122,7 @@ class Node():
                 out += i.to_bytes(4, byteorder="big")
             out += msg.tobytes()
             self.topics[topic].send(out)
-        elif isinstance(msg, json):
+        elif isinstance(msg, dict):
             """
             send json
             """
@@ -161,24 +161,27 @@ class Node():
         re = self.topics[topic].recv()
 
         data_type = re[0]
-
+        print(re)
         if data_type == 1: # receive np array
 
             """
             recv numpy array as 1 + np type + np dimension + np shape + np data
             """
             # get type
-            t = np.dtype(re.split(bytes([0]),2)[1].decode("utf-8")) 
+            t = np.dtype(re.split(bytes([0]),2)[1].decode("utf-8"))
+            print(t)
             # get dimentions
             aftertype = re.split(bytes([0]),2)[2]
             d = int.from_bytes(aftertype[:4], byteorder="big")
+            print(d)
             # get shape
             shape = []
             for i in range(d):
-                shape.append(aftertype[i*4 + 4: i*4 + 8])
+                shape.append(int.from_bytes(aftertype[i*4 + 4: i*4 + 8], byteorder="big"))
             shape = tuple(shape)
-            array = np.array(aftertype[d*4 + 4:], dtype = t)
-            array.reshape(shape)
+            print(shape)
+            array = np.frombuffer(aftertype[d*4 + 4:], dtype = t)
+            array = array.reshape(shape)
             return array
         elif data_type == 2: # receive json
             return json.dumps(re[1:].decode()).replace("'", '"')[1:-1]
